@@ -15,9 +15,12 @@
 
 # Important: Please modify the dictionary with appropriate
 # design spec file.
+# When multiple design files exists, then sheet name can be specified
+# as for example:
+# ipmi_sheet_name: 'SiteDesign.xls:6.0 Server IP-Profile Info'
+#
 ---
 specs:
-    # Design Spec file name:  MTN54_AEC_Eng_Design_Specs_v1.2.xlsx
     xl_spec:
         # Specify the row header which labels columns
         ipmi_sheet_name: 'Server IP-Profile Info'

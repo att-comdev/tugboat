@@ -1,3 +1,4 @@
+{% set control_count = [1] %}
 {% for rack in data['baremetal'].keys() %}
 {% for host in data['baremetal'][rack].keys()%}
 {% if data['baremetal'][rack][host]['type'] != 'genesis' %}
@@ -10,15 +11,23 @@ metadata:
     abstract: false
     layer: site
   storagePolicy: cleartext
-{% set rack = data['baremetal'][rack][host]['rack'] %}
 data:
-  host_profile: {{data['baremetal'][rack][host]['host_profile']}}_{{ rack }}
+{% if data['baremetal'][rack][host]['host_profile'] == 'cp' %}  
+{% if control_count.append(control_count.pop()+1) %} {% endif %}
+{% if control_count[0] < 4 %}
+  host_profile: nc-{{data['baremetal'][rack][host]['host_profile']}}-primary
+{% else %}
+  host_profile: nc-{{data['baremetal'][rack][host]['host_profile']}}-secondary
+{% endif %}
+{% else %}
+  host_profile: nc-{{data['baremetal'][rack][host]['host_profile']}}
+{% endif %} 
   addressing:
     - network: oob
       address: {{ data['baremetal'][rack][host]['ip']['oob'] }}
     - network: oam
       address: {{ data['baremetal'][rack][host]['ip']['oam'] }}
-    - network: {{ rack }}_pxe
+    - network: pxe
       address: {{ data['baremetal'][rack][host]['ip']['pxe'] }}
     - network: storage
       address: {{ data['baremetal'][rack][host]['ip']['storage'] }}
