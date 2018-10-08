@@ -1,31 +1,3 @@
----
-schema: 'drydock/NetworkLink/v1'
-metadata:
-  schema: 'metadata/Document/v1'
-  name: {{rack_key}}_oob
-  layeringDefinition:
-    abstract: false
-    layer: site
-  storagePolicy: cleartext
-  substitutions:
-  - src:
-      schema: pegleg/NetworkSettings/v1
-      name: network-settings
-      path: .mtu.oob
-    dest:
-      path: .mtu
-data:
-  labels:
-    noconfig: enabled
-  bonding:
-    mode: disabled
-  linkspeed: auto
-  trunking:
-    mode: disabled
-    default_network: oob
-  allowed_networks:
-    - oob
-...
 
 ---
 schema: 'drydock/Network/v1'
@@ -35,14 +7,13 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+    parentSelector:
+      network_role: oob
+      topology: cruiser
+    actions:
+      - method: merge
+        path: .
   storagePolicy: cleartext
-  substitutions:
-  - src:
-      schema: pegleg/NetworkSettings/v1
-      name: network-settings
-      path: .mtu.oob
-    dest:
-      path: .mtu
 data:
   cidr: {{ data['network']['common']['oob']['nw'] }}
   routes:
@@ -56,33 +27,6 @@ data:
 ...
 
 ---
-schema: 'drydock/NetworkLink/v1'
-metadata:
-  schema: 'metadata/Document/v1'
-  name: pxe
-  layeringDefinition:
-    abstract: false
-    layer: site
-  storagePolicy: cleartext
-  substitutions:
-  - src:
-      schema: pegleg/NetworkSettings/v1
-      name: network-settings
-      path: .mtu.pxe
-    dest:
-      path: .mtu
-data:
-  bonding:
-    mode: disabled
-  linkspeed: auto
-  trunking:
-    mode: disabled
-    default_network: pxe
-  allowed_networks:
-    - pxe
-...
-
----
 schema: 'drydock/Network/v1'
 metadata:
   schema: 'metadata/Document/v1'
@@ -90,14 +34,13 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+    parentSelector:
+      network_role: oob
+      topology: cruiser
+    actions:
+      - method: merge
+        path: .
   storagePolicy: cleartext
-  substitutions:
-  - src:
-      schema: pegleg/NetworkSettings/v1
-      name: network-settings
-      path: .mtu.pxe
-    dest:
-      path: .mtu
 data:
   cidr: {{ data['network']['common']['pxe']['nw'] }}
   routes:
@@ -161,26 +104,27 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: 'site'
-  storagePolicy: cleartext
+    parentSelector:
+      network_role: oob
+      topology: cruiser
+    actions:
+      - method: merge
+        path: .
   substitutions:
-    - src:
-        schema: pegleg/NetworkSettings/v1
-        name: network-settings
-        path: .mtu.oam
-      dest:
-        path: .mtu
-    # The DNS domain in common-addresses will be applied to all
-    # deployed nodes. If you use anything but OAM as your primary
-    # interface on a node, you should move this substitution to
-    # that drydock/Network/v1 document
     - src:
         schema: pegleg/CommonAddresses/v1
         name: common-addresses
         path: .dns.node_domain
       dest:
         path: .dns.domain
+    - src:
+        schema: pegleg/CommonAddresses/v1
+        name: common-addresses
+        path: .dns.upstream_servers_joined
+      dest:
+        path: .dns.servers
+  storagePolicy: cleartext
 data:
-  vlan: {{ data['network']['common']['oam']['vlan'] }}
   cidr: {{ data['network']['common']['oam']['nw'] }}
 {% set flag = [0] %}
 {% for route in data['network']['common']['oam']['routes'] %}
@@ -202,8 +146,6 @@ data:
     - type: static
       start: {{ data['network']['common']['oam']['static_start'] }}
       end: {{ data['network']['common']['oam']['static_end'] }}
-  dns:
-    servers: {{ data['network']['dns']['servers'] }}
 ...
 
 ---
@@ -214,30 +156,15 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+    parentSelector:
+      network_role: oob
+      topology: cruiser
+    actions:
+      - method: merge
+        path: .
   storagePolicy: cleartext
-  substitutions:
-    - src:
-        schema: pegleg/NetworkSettings/v1
-        name: network-settings
-        path: .mtu.storage
-      dest:
-        path: .mtu
 data:
-  vlan: {{ data['network']['common']['storage']['vlan'] }}
   cidr: {{ data['network']['common']['storage']['nw'] }}
-{% set flag = [0] %}
-{% for route in data['network']['common']['storage']['routes'] %}
-{% if flag[0] == 0 %}
-  routes:
-{% endif %}
-{% if flag.append(flag.pop() + 1) %} {% endif %}
-    - subnet: {{ route }}
-      gateway: {{ data['network']['common']['storage']['gw'] }}
-      metric: 100
-{% endfor %}
-{% if flag[0] == 0 %}
-  routes:[]
-{% endif %}
   ranges:
     - type: reserved
       start: {{ data['network']['common']['storage']['reserved_start'] }}
@@ -255,30 +182,15 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
+    parentSelector:
+      network_role: os-overlay
+      topology: cruiser
+    actions:
+      - method: merge
+        path: .
   storagePolicy: cleartext
-  substitutions:
-    - src:
-        schema: pegleg/NetworkSettings/v1
-        name: network-settings
-        path: .mtu.overlay
-      dest:
-        path: .mtu
 data:
-  vlan: {{ data['network']['common']['overlay']['vlan'] }}
   cidr: {{ data['network']['common']['overlay']['nw'] }}
-{% set flag = [0] %}
-{% for route in data['network']['common']['overlay']['routes'] %}
-{% if flag[0] == 0 %}
-  routes:
-{% endif %}
-{% if flag.append(flag.pop() + 1) %} {% endif %}
-    - subnet: {{ route }}
-      gateway: {{ data['network']['common']['overlay']['gw'] }}
-      metric: 100
-{% endfor %}
-{% if flag[0] == 0 %}
-  routes:[]
-{% endif %}
   ranges:
     - type: reserved
       start: {{ data['network']['common']['overlay']['reserved_start'] }}
@@ -292,34 +204,19 @@ data:
 schema: 'drydock/Network/v1'
 metadata:
   schema: 'metadata/Document/v1'
-  name: calico
+  name: ksn
   layeringDefinition:
     abstract: false
     layer: site
+    parentSelector:
+      network_role: ksn
+      topology: cruiser
+    actions:
+      - method: merge
+        path: .
   storagePolicy: cleartext
-  substitutions:
-    - src:
-        schema: pegleg/NetworkSettings/v1
-        name: network-settings
-        path: .mtu.kubernetes
-      dest:
-        path: .mtu
 data:
-  vlan: {{ data['network']['common']['calico']['vlan'] }}
   cidr: {{ data['network']['common']['calico']['nw'] }}
-{% set flag = [0] %}
-{% for route in data['network']['common']['calico']['routes'] %}
-{% if flag[0] == 0 %}
-  routes:
-{% endif %}
-{% if flag.append(flag.pop() + 1) %} {% endif %}
-    - subnet: {{ route }}
-      gateway: {{ data['network']['common']['calico']['gw'] }}
-      metric: 100
-{% endfor %}
-{% if flag[0] == 0 %}
-  routes:[]
-{% endif %}
   ranges:
     - type: reserved
       start: {{ data['network']['common']['calico']['reserved_start'] }}

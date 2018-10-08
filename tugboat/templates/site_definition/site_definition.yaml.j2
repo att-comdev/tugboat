@@ -4,11 +4,11 @@ metadata:
   layeringDefinition:
     abstract: false
     layer: site
-  name: {{ region_name }}
+  name: {{ data['region_name'] }}
   schema: metadata/Document/v1
   storagePolicy: cleartext
 data:
   revision: v4.0
-  site_type: large
+  site_type: {{ data['sitetype'] }}
 ...
 
