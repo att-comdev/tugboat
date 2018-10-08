@@ -16,6 +16,9 @@
 # Important: Please modify the dictionary with appropriate
 # design spec file.
 ---
+# When multiple design files exists, then sheet name can be specified
+# as for example:
+# ipmi_sheet_name: 'SiteDesign.xls:6.0 Server IP-Profile Info'
 specs:
     xl_spec: 
         ipmi_sheet_name: '6.0 Server IP-Profile Info'
