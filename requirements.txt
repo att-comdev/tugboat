@@ -2,7 +2,7 @@ jinja2==2.9.6
 jsonschema
 netaddr
 openpyxl==2.5.4
-pyyaml==3.12
+pyyaml==4.2b1
 requests
 flask==1.0.2
 flask-bootstrap==3.3.7.1
