@@ -69,7 +69,7 @@ def generate_manifest_files(intermediary, manifest_dir=None):
 @click.option(
     '--edit_intermediary/--no_edit_intermediary',
     '-e/-nedit',
-    default=True,
+    default=False,
     help='Flag to let user edit intermediary')
 @click.option(
     '--generate_manifests',
@@ -81,6 +81,18 @@ def generate_manifest_files(intermediary, manifest_dir=None):
     '-mdir',
     type=click.Path(exists=True),
     help='The path where manifest files needs to be generated')
+@click.option(
+    '--excel',
+    '-x',
+    multiple=True,
+    type=click.Path(exists=True),
+    help=
+    'Path to engineering excel file, to be passed with generate_intermediary')
+@click.option(
+    '--excel_spec',
+    '-e',
+    type=click.Path(exists=True),
+    help='Path to excel spec, to be passed with generate_intermediary')
 @click.option(
     '--loglevel',
     '-l',
@@ -108,7 +120,7 @@ def main(*args, **kwargs):
     stream_handle.setFormatter(formatter)
     LOG.addHandler(stream_handle)
     LOG.info("Spyglass start")
-    LOG.debug("CLI Parameters passed:\n{}".format(kwargs))
+    LOG.info("CLI Parameters passed:\n{}".format(kwargs))
 
     # When intermediary file is specified, Spyglass will generate the
     # manifest without extracting any data from plugin data source
@@ -135,14 +147,13 @@ def main(*args, **kwargs):
                 raw_data = config.read()
                 additional_config_data = yaml.safe_load(raw_data)
 
-        LOG.debug("Additional config data:\n{}".format(
+        LOG.debug("Additional site config data passed:\n{}".format(
             pprint.pformat(additional_config_data)))
         data_extractor.set_config_opts(plugin_conf)
         data_extractor.extract_data()
         LOG.info(
             "Apply additional configuration from:{}".format(additional_config))
         data_extractor.apply_additional_data(additional_config_data)
-        LOG.debug(pprint.pformat(data_extractor.site_data))
         """
         Initialize ProcessDataSource object to process received data
         """

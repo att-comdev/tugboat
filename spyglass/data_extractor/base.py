@@ -277,7 +277,6 @@ class BaseDataSourcePlugin(object):
         """
         LOG.info("Extract baremetal information from plugin")
         baremetal = {}
-        is_genesis = False
         hosts = self.get_hosts(self.region)
 
         # For each host list fill host profile and network IPs
@@ -301,40 +300,23 @@ class BaseDataSourcePlugin(object):
 
             # Fill network IP for this host
             temp_host['ip'] = {}
-            temp_host['ip']['oob'] = temp_host_ips[host_name].get('oob', "")
+            temp_host['ip']['oob'] = temp_host_ips[host_name].get(
+                'oob', "#CHANGE_ME")
             temp_host['ip']['calico'] = temp_host_ips[host_name].get(
-                'calico', "")
-            temp_host['ip']['oam'] = temp_host_ips[host_name].get('oam', "")
+                'calico', "#CHANGE_ME")
+            temp_host['ip']['oam'] = temp_host_ips[host_name].get(
+                'oam', "#CHANGE_ME")
             temp_host['ip']['storage'] = temp_host_ips[host_name].get(
-                'storage', "")
+                'storage', "#CHANGE_ME")
             temp_host['ip']['overlay'] = temp_host_ips[host_name].get(
-                'overlay', "")
-            # TODO(pg710r): Testing only.
+                'overlay', "#CHANGE_ME")
             temp_host['ip']['pxe'] = temp_host_ips[host_name].get(
                 'pxe', "#CHANGE_ME")
-
-            # TODO(nh863p): Can this logic goes into dervied plugin class
-            # How to determine genesis node??
-
-            # TODO(nh863p): If below logic is based on host profile name, then
-            # it should be part of design rule???
-            # Filling rack_type( compute/controller/genesis)
-            # "cp" host profile is controller
-            # "ns" host profile is compute
-            if (temp_host['host_profile'] == 'cp'):
-                # The controller node is designates as genesis"
-                if is_genesis is False:
-                    is_genesis = True
-                    temp_host['type'] = 'genesis'
-                else:
-                    temp_host['type'] = 'controller'
-            else:
-                temp_host['type'] = 'compute'
+            temp_host['type'] = host.get('type', "#CHANGE_ME")
 
             baremetal[rack_name][host_name] = temp_host
         LOG.debug("Baremetal information:\n{}".format(
             pprint.pformat(baremetal)))
-
         return baremetal
 
     def extract_site_information(self):
@@ -414,12 +396,12 @@ class BaseDataSourcePlugin(object):
             'calico', 'overlay', 'pxe', 'storage', 'oam', 'oob', 'ingress'
         ]
         network_data['vlan_network_data'] = {}
-
         for net in networks:
             tmp_net = {}
             if net['name'] in networks_to_scan:
-                tmp_net['subnet'] = net['subnet']
-                tmp_net['vlan'] = net['vlan']
+                tmp_net['subnet'] = net.get('subnet', '#CHANGE_ME')
+                if ((net['name'] != 'ingress') and (net['name'] != 'oob')):
+                    tmp_net['vlan'] = net.get('vlan', '#CHANGE_ME')
 
             network_data['vlan_network_data'][net['name']] = tmp_net
 
@@ -436,9 +418,10 @@ class BaseDataSourcePlugin(object):
         LOG.info("Extract data from plugin")
         site_data = {}
         site_data['baremetal'] = self.extract_baremetal_information()
-        site_data['site_info'] = self.extract_site_information()
         site_data['network'] = self.extract_network_information()
+        site_data['site_info'] = self.extract_site_information()
         self.site_data = site_data
+
         return site_data
 
     def apply_additional_data(self, extra_data):
@@ -450,7 +433,7 @@ class BaseDataSourcePlugin(object):
         If there is repetition of data then additional data supplied
         shall take precedence.
         """
-        LOG.info("Update site data with additional input")
+        LOG.info("Merging site data with additional configuration")
         tmp_site_data = utils.dict_merge(self.site_data, extra_data)
         self.site_data = tmp_site_data
         return self.site_data
